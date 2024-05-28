@@ -1,0 +1,85 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+# This workflow lets you generate SLSA provenance file for your project.
+# The generation satisfies level 3 for the provenance requirements - see https://slsa.dev/spec/v0.1/requirements
+# The project is an initiative of the OpenSSF (openssf.org) and is developed at
+# https://github.com/slsa-framework/slsa-github-generator.
+# The provenance file can be verified using https://github.com/slsa-framework/slsa-verifier.
+# For more information about SLSA and how it improves the supply-chain, visit slsa.dev.
+
+name: SLSA generic generator
+on:
+  workflow_dispatch:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      digests: ${{ steps.hash.outputs.digests }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ========================================================
+      #
+      # Step 1: Build your artifacts.
+      #
+      # ========================================================
+      - name: Build artifacts
+        run: |
+            # These are some amazing artifacts.
+            echo "artifact1" > artifact1
+            echo "artifact2" > artifact2
+
+      # ========================================================
+      #
+      # Step 2: Add a step to generate the provenance subjects
+      #         as shown below. Update the sha256 sum arguments
+      #         to include all binaries that you generate
+      #         provenance for.
+      #
+      # ========================================================
+      - name: Generate subject for provenance
+        id: hash
+        run: |
+          set -euo pipefail
+
+          # List the artifacts the provenance will refer to.
+          files=$(ls artifact*)
+          # Generate the subjects (base64 encoded).
+          echo "hashes=$(sha256sum $files | base64 -w0)" >> "${GITHUB_OUTPUT}"
+
+  provenance:
+    needs: [build]
+    permissions:
+      actions: read   # To read the workflow path.
+      id-token: write # To sign the provenance.
+      contents: write # To add assets to a release.
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.4.0
+    with:
+      base64-subjects: "${{ needs.build.outputs.digests }}"
+      upload-assets: true # Optional: Upload to a new release
+            - nome: Cache
+  usa: ações/cache@v4.0.2
+  com:
+    # Uma lista de arquivos, diretórios e padrões curinga para armazenar em cache e restaurar
+    caminho:
+    # Uma chave explícita para restaurar e salvar o cache
+    chave:
+    # Uma lista ordenada de chaves a serem usadas para restaurar o cache obsoleto se nenhuma ocorrência de cache ocorreu para a chave. Observe que `cache-hit` retorna falso neste caso.
+    chaves de restauração: # opcional
+    # O tamanho do bloco usado para dividir arquivos grandes durante o upload, em bytes
+    upload-chunk-size: # opcional
+    # Um booleano opcional quando ativado, permite que os executores do Windows salvem ou restaurem caches que podem ser restaurados ou salvos respectivamente em outras plataformas
+    enableCrossOsArchive: # opcional, o padrão é falso
+    # Falha no fluxo de trabalho se a entrada do cache não for encontrada
+    fail-on-cache-miss: # opcional, o padrão é falso
+    # Verifica se existe uma entrada de cache para as entradas fornecidas (chave, chaves de restauração) sem baixar o cache
+    somente pesquisa: # opcional, o padrão é falso
+    # Execute a etapa posterior para salvar o cache mesmo se outra etapa anterior falhar
+    salvar sempre: # opcional, o padrão é falso
